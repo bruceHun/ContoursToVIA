@@ -1,7 +1,8 @@
-import math
+from math import pow as m_pow
+from math import sqrt as m_sqrt
 
 
-def process_image(filename: str, filesize: int, contours: list, file, distance: float = 0):
+def process_image(filename: str, filesize: int, contours: list, typename: str, file):
 
     num_of_areas = len(contours)
 
@@ -21,13 +22,15 @@ def process_image(filename: str, filesize: int, contours: list, file, distance: 
         all_x = []
         all_y = []
         for i in range(tp):
-            p1 = area[i][0]
-            p2 = area[(i + 1) % tp][0]
-            dist = math.sqrt(math.pow(p1[0] - p2[0], 2) + math.pow(p1[1] - p1[1], 2))
-
-            if dist > distance or i == 0:
-                all_x.append(p1[0])
-                all_y.append(p1[1])
+            all_x.append(area[i][0][0])
+            all_y.append(area[i][0][1])
+            # p1 = area[i][0]
+            # p2 = area[(i + 1) % tp][0]
+            # dist = m_sqrt(m_pow(p1[0] - p2[0], 2) + m_pow(p1[1] - p1[1], 2))
+            #
+            # if dist > distance or i == 0:
+            #     all_x.append(p1[0])
+            #     all_y.append(p1[1])
 
         file.write(
             "\t\t\t{\n" +
@@ -58,7 +61,9 @@ def process_image(filename: str, filesize: int, contours: list, file, distance: 
         file.write(
             "\t\t\t\t\t]\n" +
             "\t\t\t\t},\n" +
-            "\t\t\t\t\"region_attributes\": {}\n" +
+            "\t\t\t\t\"region_attributes\": {\n" +
+            f"\t\t\t\t\t\"Name\": \"{typename}\"\n" +
+            "\t\t\t\t}\n" +
             "\t\t\t}"
         )
         if idx != num_of_areas:
