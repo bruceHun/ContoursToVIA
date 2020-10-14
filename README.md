@@ -5,8 +5,20 @@ First and formost, you need to have preprocessed image
     pyinstaller -D LabelHelper.py
 
 ## How to Use
-    python LabelHelper.py [-p] [-d (image directory)]
+    python LabelHelper.py [-p] 
     -p      Preview Contours result
-    -d      Specify the directory of the source images
+    
+## Default Setting File
+#### **`settings.ini`**
+```ini
+[GeneralSettings]
+imagedir = ../images
+
+[ContoursSettings]
+threshold = 20
+colormax = 255
+mode = 1
+```
+
     
     

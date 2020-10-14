@@ -2,16 +2,17 @@ import cv2
 from os import path as os_path
 from os import listdir as os_listdir
 from os import stat as os_stat
+import configparser
 import contovia
 
 
-def get_contours(filepath: str, preview: bool) -> list:
+def get_contours(filepath: str, threshold: int, color_max: int, mode: int, preview: bool) -> list:
     # 讀取圖檔
     im = cv2.imread(filepath)
     # 轉灰階
     imgray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
     # 定門檻值 (灰階圖，門檻，最大值，)
-    ret, thresh = cv2.threshold(imgray, 20, 255, cv2.THRESH_BINARY_INV)
+    ret, thresh = cv2.threshold(imgray, threshold, color_max, mode)
 
     # 4.Erodes the Thresholded Image
     element = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
@@ -39,22 +40,40 @@ if __name__ == '__main__':
     # Parse command line arguments
     parser = argparse.ArgumentParser(
         description='Generate VIA JSON file with png images.')
-    # 指定點最小距離
-    parser.add_argument('-d', '--directory', required=False,
-                        help="Source images directory")
     # 是否開啟 Contours 預覽 (預設關閉)
     parser.add_argument('-p', '--preview', required=False,
                         action='store_true',
                         help="Preview contours")
     args = parser.parse_args()
 
-    # 圖片資料夾
-    if args.directory is None:
-        folder = '../images'
-    else:
-        folder = args.directory
     prev = args.preview
     print("preview contours: ", prev)
+
+    # 開啟設定檔
+    try:
+        settings = open("settings.ini", "r")
+        settings.close()
+        config = configparser.ConfigParser()
+        config.read("settings.ini")
+        folder = config.get('GeneralSettings', 'ImageDir')
+        g_threshold = int(config.get('ContoursSettings', 'Threshold'))
+        g_color_max = int(config.get('ContoursSettings', 'ColorMax'))
+        g_mode = int(config.get('ContoursSettings', 'Mode'))
+    except FileNotFoundError:
+        config = configparser.ConfigParser()
+
+        config["GeneralSettings"] = {'ImageDir': '../images'  # 圖片資料夾
+                                     }
+        config["ContoursSettings"] = {'Threshold': '20',
+                                      'ColorMax': '255',
+                                      'Mode': '1'
+                                      }
+        folder = config.get('GeneralSettings', 'ImageDir')
+        g_threshold = int(config.get('ContoursSettings', 'Threshold'))
+        g_color_max = int(config.get('ContoursSettings', 'ColorMax'))
+        g_mode = int(config.get('ContoursSettings', 'Mode'))
+        with open('settings.ini', 'w') as file:
+            config.write(file)
 
     # 開啟檔案供寫入
     f = open("../labels.json", "w")
@@ -63,32 +82,30 @@ if __name__ == '__main__':
     f.write("{\n")
     # 資料夾中所有檔案
     images = os_listdir(folder)
-    # 圖檔數量
-    ttimgs = len(images)
     count = 0
 
     for filename in images:
-        count += 1
         if filename.endswith(".png") or filename.endswith("_mask.tif"):
             path = folder + '/' + filename
-            filesize = os_stat(path).st_size
             # 取得圖片 Contours
-            CONTOURS = get_contours(path, prev)
+            CONTOURS = get_contours(path, g_threshold, g_color_max, g_mode, prev)
             # 沒找到就跳過
             if len(CONTOURS) == 0:
                 print('No area found')
                 continue
+
+            count += 1
+            if count > 1:
+                f.write(",\n")
             # 更改附檔名 (空拍照片皆為 jpg 格式)
             if filename.endswith("_mask.tif"):
                 fnamejpg = filename[:len(filename) - 9] + '.JPG'
             else:
                 fnamejpg = os_path.splitext(filename)[0] + '.JPG'
+            filesize = os_stat(folder + '/' + fnamejpg).st_size
             # 將 Contours 點寫入 JSON
             contovia.process_image(fnamejpg, filesize, CONTOURS, "vehicle", f)
-            if count != ttimgs:
-                f.write(",")
-            f.write("\n")
 
     # End of JSON
-    f.write("}\n")
+    f.write("\n}\n")
     f.close()
