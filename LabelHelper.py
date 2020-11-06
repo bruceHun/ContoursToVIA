@@ -2,6 +2,7 @@ import cv2
 from os import path as os_path
 from os import listdir as os_listdir
 from os import stat as os_stat
+import json
 import configparser
 import contovia
 
@@ -75,11 +76,7 @@ if __name__ == '__main__':
         with open('settings.ini', 'w') as file:
             config.write(file)
 
-    # 開啟檔案供寫入
-    f = open("../labels.json", "w")
-
-    # Begin JSON
-    f.write("{\n")
+    labelfile = {}
     # 資料夾中所有檔案
     images = os_listdir(folder)
     count = 0
@@ -94,9 +91,6 @@ if __name__ == '__main__':
                 print('No area found')
                 continue
 
-            count += 1
-            if count > 1:
-                f.write(",\n")
             # 更改附檔名 (空拍照片皆為 jpg 格式)
             if filename.endswith("_mask.tif"):
                 fnamejpg = filename[:len(filename) - 9] + '.JPG'
@@ -104,8 +98,8 @@ if __name__ == '__main__':
                 fnamejpg = os_path.splitext(filename)[0] + '.JPG'
             filesize = os_stat(folder + '/' + fnamejpg).st_size
             # 將 Contours 點寫入 JSON
-            contovia.process_image(fnamejpg, filesize, CONTOURS, "vehicle", f)
+            contovia.process_image(fnamejpg, filesize, CONTOURS, "vehicle", labelfile)
 
-    # End of JSON
-    f.write("\n}\n")
-    f.close()
+    with open("../labels.json", "w") as outfile:
+        print(labelfile)
+        outfile.write(str(json.dumps(labelfile)))
