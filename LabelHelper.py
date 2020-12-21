@@ -15,12 +15,12 @@ lows: np.array = np.array([[128, 0, 0],
                            [128, 0, 128],
                            [0, 128, 128]])
 
-highs: np.array = np.array([[255, 0, 0],
-                            [0, 255, 0],
-                            [0, 0, 255],
-                            [255, 255, 0],
-                            [255, 0, 255],
-                            [0, 255, 255]])
+highs: np.array = np.array([[255, 20, 20],
+                            [20, 255, 20],
+                            [20, 20, 255],
+                            [255, 255, 20],
+                            [255, 20, 255],
+                            [20, 255, 255]])
 
 
 def get_contours(filepath: str, threshold: int, color_max: int, mode: int, preview: bool) -> list:
@@ -130,7 +130,6 @@ if __name__ == '__main__':
             contovia.process_image(fnamejpg, filesize, CONTOURS, "vehicle", labelfile)
 
     with open("../labels.json", "w") as outfile:
-        print(labelfile)
         outfile.write(str(json.dumps(labelfile)))
 
     with open("../cam_list.json", "w") as cam_list_file:
