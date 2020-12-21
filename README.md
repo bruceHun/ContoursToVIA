@@ -5,8 +5,10 @@ First and formost, you need to have preprocessed image
     pyinstaller -D LabelHelper.py
 
 ## How to Use
-    python LabelHelper.py [-p] 
-    -p      Preview Contours result
+    python LabelHelper.py [-p][-v] 
+    -v      Preview Contours result
+    -p      Prefix
+
     
 ## Default Setting File
 #### **`settings.ini`**

@@ -8,31 +8,38 @@ import contovia
 import numpy as np
 
 
+lows: np.array = np.array([[128, 0, 0],
+                           [0, 128, 0],
+                           [0, 0, 128],
+                           [128, 128, 0],
+                           [128, 0, 128],
+                           [0, 128, 128]])
+
+highs: np.array = np.array([[255, 0, 0],
+                            [0, 255, 0],
+                            [0, 0, 255],
+                            [255, 255, 0],
+                            [255, 0, 255],
+                            [0, 255, 255]])
+
+
 def get_contours(filepath: str, threshold: int, color_max: int, mode: int, preview: bool) -> list:
     print(filepath)
     # 讀取圖檔
     im = cv2.imread(filepath)
     # 轉灰階
     # im = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
-    lows = []
-    highs = []
-    lows.append(np.array([128, 0, 0]))
-    lows.append(np.array([0, 128, 0]))
-    lows.append(np.array([0, 0, 128]))
-    highs.append(np.array([255, 0, 0]))
-    highs.append(np.array([0, 255, 0]))
-    highs.append(np.array([0, 0, 255]))
     cons = []
-    for i in range(3):
+    for i in range(6):
         output = cv2.inRange(im, lows[i], highs[i])
         ret, thresh = cv2.threshold(output, threshold, color_max, mode)
 
-        # 4.Erodes the Thresholded Image
-        element = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
-        thresh = cv2.erode(thresh, element)
+        # # 4.Erodes the Thresholded Image
+        # element = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
+        # thresh = cv2.erode(thresh, element)
 
         # 尋找輪廓
-        contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_TC89_L1)
+        contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         if len(contours) != 0:
             for area in contours:
                 cons.append(area)
@@ -57,9 +64,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Generate VIA JSON file with png images.')
     # 是否開啟 Contours 預覽 (預設關閉)
-    parser.add_argument('-p', '--preview', required=False,
+    parser.add_argument('-v', '--preview', required=False,
                         action='store_true',
                         help="Preview contours")
+    parser.add_argument('-p', '--prefix', required=False,
+                        help="Add prefix")
     args = parser.parse_args()
 
     prev = args.preview
@@ -96,6 +105,7 @@ if __name__ == '__main__':
     # 資料夾中所有檔案
     images = os_listdir(folder)
     count = 0
+    available_cams: dict = {"cam_list": []}
 
     for filename in images:
         if filename.endswith(".png"):
@@ -108,11 +118,20 @@ if __name__ == '__main__':
                 continue
 
             # 更改附檔名 (空拍照片皆為 jpg 格式)
-            fnamejpg = os_path.splitext(filename)[0] + '.JPG'
-            filesize = os_stat(folder + '/' + fnamejpg).st_size
+            b_name = os_path.splitext(filename)[0]
+            fnamejpg = b_name + '.JPG'
+            available_cams["cam_list"].append((args.prefix if args.prefix is not None else "") + '/' + b_name)
+
+            if os_path.exists(fnamejpg):
+                filesize = os_stat(folder + '/' + fnamejpg).st_size
+            else:
+                filesize = os_stat(path).st_size
             # 將 Contours 點寫入 JSON
             contovia.process_image(fnamejpg, filesize, CONTOURS, "vehicle", labelfile)
 
     with open("../labels.json", "w") as outfile:
         print(labelfile)
         outfile.write(str(json.dumps(labelfile)))
+
+    with open("../cam_list.json", "w") as cam_list_file:
+        cam_list_file.write(str(json.dumps(available_cams)))
