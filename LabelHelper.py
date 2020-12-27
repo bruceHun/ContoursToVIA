@@ -2,6 +2,7 @@ import cv2
 from os import path as os_path
 from os import listdir as os_listdir
 from os import stat as os_stat
+from tkinter import filedialog
 import json
 import configparser
 import contovia
@@ -80,26 +81,23 @@ if __name__ == '__main__':
         settings.close()
         config = configparser.ConfigParser()
         config.read("settings.ini")
-        folder = config.get('GeneralSettings', 'ImageDir')
         g_threshold = int(config.get('ContoursSettings', 'Threshold'))
         g_color_max = int(config.get('ContoursSettings', 'ColorMax'))
         g_mode = int(config.get('ContoursSettings', 'Mode'))
     except FileNotFoundError:
 
         config = configparser.ConfigParser()
-
-        config["GeneralSettings"] = {'ImageDir': './images'  # 圖片資料夾
-                                     }
         config["ContoursSettings"] = {'Threshold': '20',
                                       'ColorMax': '255',
                                       'Mode': '0'
                                       }
-        folder = config.get('GeneralSettings', 'ImageDir')
         g_threshold = int(config.get('ContoursSettings', 'Threshold'))
         g_color_max = int(config.get('ContoursSettings', 'ColorMax'))
         g_mode = int(config.get('ContoursSettings', 'Mode'))
         with open('settings.ini', 'w') as file:
             config.write(file)
+
+    folder = filedialog.askdirectory()
 
     labelfile = {}
     # 資料夾中所有檔案
@@ -129,8 +127,8 @@ if __name__ == '__main__':
             # 將 Contours 點寫入 JSON
             contovia.process_image(fnamejpg, filesize, CONTOURS, "vehicle", labelfile)
 
-    with open("../labels.json", "w") as outfile:
+    with open(f"{folder}/via_region_data.json", "w") as outfile:
         outfile.write(str(json.dumps(labelfile)))
 
-    with open("../cam_list.json", "w") as cam_list_file:
+    with open(f"{folder}/cam_list.json", "w") as cam_list_file:
         cam_list_file.write(str(json.dumps(available_cams)))

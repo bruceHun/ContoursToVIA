@@ -13,9 +13,6 @@ First and formost, you need to have preprocessed image
 ## Default Setting File
 #### **`settings.ini`**
 ```ini
-[GeneralSettings]
-imagedir = ../images
-
 [ContoursSettings]
 threshold = 20
 colormax = 255
