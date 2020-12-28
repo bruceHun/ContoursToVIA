@@ -1,8 +1,8 @@
+from typing import Tuple
+
 import cv2
-from os import path as os_path
-from os import listdir as os_listdir
-from os import stat as os_stat
-from tkinter import filedialog
+from os import path as os_path, listdir as os_listdir, stat as os_stat, remove as os_remove
+from tkinter.filedialog import askdirectory
 import json
 import configparser
 import contovia
@@ -24,13 +24,15 @@ highs: np.array = np.array([[255, 20, 20],
                             [20, 255, 255]])
 
 
-def get_contours(filepath: str, threshold: int, color_max: int, mode: int, preview: bool) -> list:
+def get_contours(filepath: str, threshold: int, color_max: int, mode: int, preview: bool):
     print(filepath)
     # 讀取圖檔
     im = cv2.imread(filepath)
+    h, w, c = im.shape
     # 轉灰階
     # im = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
     cons = []
+
     for i in range(6):
         output = cv2.inRange(im, lows[i], highs[i])
         ret, thresh = cv2.threshold(output, threshold, color_max, mode)
@@ -43,7 +45,7 @@ def get_contours(filepath: str, threshold: int, color_max: int, mode: int, previ
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         if len(contours) != 0:
             for area in contours:
-                cons.append(area)
+                cons.append((area, i))
 
     if preview and (len(cons) != 0):
         # 畫出輪廓線
@@ -55,7 +57,7 @@ def get_contours(filepath: str, threshold: int, color_max: int, mode: int, previ
         cv2.imshow('Image', img_resize)
         cv2.waitKey(0)
 
-    return cons
+    return cons, w, h
 
 
 if __name__ == '__main__':
@@ -81,23 +83,26 @@ if __name__ == '__main__':
         settings.close()
         config = configparser.ConfigParser()
         config.read("settings.ini")
+        obj_class = config.get('GeneralSettings', 'ClassName')
         g_threshold = int(config.get('ContoursSettings', 'Threshold'))
         g_color_max = int(config.get('ContoursSettings', 'ColorMax'))
         g_mode = int(config.get('ContoursSettings', 'Mode'))
     except FileNotFoundError:
 
         config = configparser.ConfigParser()
+        config["GeneralSettings"] = {'ClassName': 'vehicle'}
         config["ContoursSettings"] = {'Threshold': '20',
                                       'ColorMax': '255',
                                       'Mode': '0'
                                       }
+        obj_class = config.get('GeneralSettings', 'ClassName')
         g_threshold = int(config.get('ContoursSettings', 'Threshold'))
         g_color_max = int(config.get('ContoursSettings', 'ColorMax'))
         g_mode = int(config.get('ContoursSettings', 'Mode'))
         with open('settings.ini', 'w') as file:
             config.write(file)
 
-    folder = filedialog.askdirectory()
+    folder = askdirectory()
 
     labelfile = {}
     # 資料夾中所有檔案
@@ -109,10 +114,12 @@ if __name__ == '__main__':
         if filename.endswith(".png"):
             path = folder + '/' + filename
             # 取得圖片 Contours
-            CONTOURS = get_contours(path, g_threshold, g_color_max, g_mode, prev)
-            # 沒找到就跳過
+            CONTOURS, w, h = get_contours(path, g_threshold, g_color_max, g_mode, prev)
+            # 沒找到就跳過，並且刪除遮罩圖片
             if len(CONTOURS) == 0:
-                print('No area found')
+                print(f'No area found. Deleting {path}...')
+                os_remove(path)
+                print('Done')
                 continue
 
             # 更改附檔名 (空拍照片皆為 jpg 格式)
@@ -125,7 +132,7 @@ if __name__ == '__main__':
             else:
                 filesize = os_stat(path).st_size
             # 將 Contours 點寫入 JSON
-            contovia.process_image(fnamejpg, filesize, CONTOURS, "vehicle", labelfile)
+            contovia.process_image(fnamejpg, filesize, CONTOURS, w, h, obj_class, labelfile)
 
     with open(f"{folder}/via_region_data.json", "w") as outfile:
         outfile.write(str(json.dumps(labelfile)))
