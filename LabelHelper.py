@@ -27,8 +27,9 @@ highs: np.array = np.array([[255, 20, 20],
 def get_contours(filepath: str, threshold: int, color_max: int, mode: int, preview: bool):
     print(filepath)
     # 讀取圖檔
+    print('File found' if os_path.exists(filepath) else 'File Not found')
     im = cv2.imread(filepath)
-    h, w, c = im.shape
+    im_h, im_w, c = im.shape
     # 轉灰階
     # im = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
     cons = []
@@ -57,7 +58,7 @@ def get_contours(filepath: str, threshold: int, color_max: int, mode: int, previ
         cv2.imshow('Image', img_resize)
         cv2.waitKey(0)
 
-    return cons, w, h
+    return cons, im_w, im_h
 
 
 if __name__ == '__main__':
@@ -136,6 +137,5 @@ if __name__ == '__main__':
 
     with open(f"{folder}/via_region_data.json", "w") as outfile:
         outfile.write(str(json.dumps(labelfile)))
-
     with open(f"{folder}/cam_list.json", "w") as cam_list_file:
         cam_list_file.write(str(json.dumps(available_cams)))
