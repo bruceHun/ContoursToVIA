@@ -8,7 +8,7 @@ import configparser
 import contovia
 import numpy as np
 
-
+# 六種顏色的上下限值
 lows: np.array = np.array([[128, 0, 0],
                            [0, 128, 0],
                            [0, 0, 128],
@@ -25,22 +25,26 @@ highs: np.array = np.array([[255, 20, 20],
 
 
 def get_contours(filepath: str, threshold: int, color_max: int, mode: int, preview: bool):
+    """
+    依據設定使用 OpenCV 偵測輪廓
+    :param filepath: 來源圖檔名稱
+    :param threshold: 門檻值 (參閱 OpenCV 文件)
+    :param color_max: 顏色上限 (參閱 OpenCV 文件)
+    :param mode: 模式 (參閱 OpenCV 文件)
+    :param preview: 即時預覽結果
+    :return: 回傳 contours 及圖片高、寬
+    """
     print(filepath)
     # 讀取圖檔
     print('File found' if os_path.exists(filepath) else 'File Not found')
     im = cv2.imread(filepath)
     im_h, im_w, c = im.shape
-    # 轉灰階
-    # im = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
     cons = []
 
+    # 針對六個不同的顏色各執行一次輪廓偵測
     for i in range(6):
         output = cv2.inRange(im, lows[i], highs[i])
         ret, thresh = cv2.threshold(output, threshold, color_max, mode)
-
-        # # 4.Erodes the Thresholded Image
-        # element = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
-        # thresh = cv2.erode(thresh, element)
 
         # 尋找輪廓
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -71,6 +75,7 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--preview', required=False,
                         action='store_true',
                         help="Preview contours")
+    # 在相機清單中的項目加上前綴。(ex. "Photogroup 1")
     parser.add_argument('-p', '--prefix', required=False,
                         help="Add prefix")
     args = parser.parse_args()
@@ -106,12 +111,10 @@ if __name__ == '__main__':
     folder = askdirectory()
 
     labelfile = {}
-    # 資料夾中所有檔案
-    images = os_listdir(folder)
-    count = 0
+    # 有找到 contours 的相機清單
     available_cams: dict = {"cam_list": []}
 
-    for filename in images:
+    for filename in os_listdir(folder):
         if filename.endswith(".png"):
             path = folder + '/' + filename
             # 取得圖片 Contours
@@ -126,6 +129,7 @@ if __name__ == '__main__':
             # 更改附檔名 (空拍照片皆為 jpg 格式)
             b_name = os_path.splitext(filename)[0]
             fnamejpg = b_name + '.JPG'
+            # 加入至相機清單
             available_cams["cam_list"].append((args.prefix if args.prefix is not None else "") + '/' + b_name)
 
             if os_path.exists(fnamejpg):
@@ -134,7 +138,7 @@ if __name__ == '__main__':
                 filesize = os_stat(path).st_size
             # 將 Contours 點寫入 JSON
             contovia.process_image(fnamejpg, filesize, CONTOURS, w, h, obj_class, labelfile)
-
+    # 輸出兩個檔案
     with open(f"{folder}/via_region_data.json", "w") as outfile:
         outfile.write(str(json.dumps(labelfile)))
     with open(f"{folder}/cam_list.json", "w") as cam_list_file:
