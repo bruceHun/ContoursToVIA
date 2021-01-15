@@ -8,6 +8,8 @@ First and formost, you need to have preprocessed image
     python LabelHelper.py [-p][-v] 
     -v      Preview Contours result
     -p      Prefix
+    
+    ex. python LabelHelper.py -p "Photogroup 1" -v
 
     
 ## Default Setting File

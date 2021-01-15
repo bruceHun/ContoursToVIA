@@ -3,6 +3,7 @@ from typing import Tuple
 import cv2
 from os import path as os_path, listdir as os_listdir, stat as os_stat, remove as os_remove
 from tkinter.filedialog import askdirectory
+from tkinter import Tk
 import json
 import configparser
 import contovia
@@ -108,6 +109,10 @@ if __name__ == '__main__':
         with open('settings.ini', 'w') as file:
             config.write(file)
 
+    # 建立並隱藏主視窗
+    root = Tk()
+    root.withdraw()
+    # 選擇圖片目錄
     folder = askdirectory()
 
     labelfile = {}
