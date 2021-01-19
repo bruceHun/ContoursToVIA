@@ -1,13 +1,14 @@
 from typing import Tuple
 
 import cv2
-from os import path as os_path, listdir as os_listdir, stat as os_stat, remove as os_remove
+from os import path as os_path, listdir as os_listdir, stat as os_stat, remove as os_remove, makedirs as os_makedirs
 from tkinter.filedialog import askdirectory
 from tkinter import Tk
 import json
 import configparser
 import contovia
 import numpy as np
+import re
 
 # 六種顏色的上下限值
 lows: np.array = np.array([[128, 0, 0],
@@ -64,6 +65,26 @@ def get_contours(filepath: str, threshold: int, color_max: int, mode: int, previ
         cv2.waitKey(0)
 
     return cons, im_w, im_h
+
+
+def get_save_filename(directory: str, f_name: str) -> str:
+
+    save_path = f'{directory}/{f_name}.json'
+    # 儲存 JSON 檔案前檢查檔案是否存在
+    if os_path.exists(save_path):
+        json_files = [f for f in os_listdir(directory) if re.match(f'{f_name}\([0-9]+\).json', f)]
+
+        idx = 1
+        if len(json_files) > 0:
+            for jsn in json_files:
+                st, ed = re.search('[0-9]+', jsn).span()
+                print(jsn[st:ed])
+                idx = max(idx, int(jsn[st:ed]))
+            idx += 1
+
+        save_path = f'{directory}/{f_name}({idx}).json'
+
+    return save_path
 
 
 if __name__ == '__main__':
@@ -144,7 +165,7 @@ if __name__ == '__main__':
             # 將 Contours 點寫入 JSON
             contovia.process_image(fnamejpg, filesize, CONTOURS, w, h, obj_class, labelfile)
     # 輸出兩個檔案
-    with open(f"{folder}/via_region_data.json", "w") as outfile:
+    with open(get_save_filename(folder, "via_region_data"), "w") as outfile:
         outfile.write(str(json.dumps(labelfile)))
-    with open(f"{folder}/cam_list.json", "w") as cam_list_file:
+    with open(get_save_filename(folder, "cam_list"), "w") as cam_list_file:
         cam_list_file.write(str(json.dumps(available_cams)))
